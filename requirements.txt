@@ -1,6 +1,6 @@
 pip==25.0.1
 pipreqs==0.4.13
-streamlit>=1.35.0
+streamlit>=1.45.1
 pandas>=2.3.0
 numpy>=2.3.0
 scikit-learn>=1.7.0
