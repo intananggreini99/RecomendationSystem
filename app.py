@@ -36,8 +36,8 @@ user_id_to_username = {v: k for k, v in username_to_userid.items()}
 
 # === HALAMAN: TEMPAT SERUPA ===
 if menu == "Tempat Serupa":
-    st.title("🔍 Rekomendasi Destinasi")
-    st.title("    Used Content Based Filtering")
+    st.markdown("<h3 style='text-align: center;'>🔍 Rekomendasi Destinasi</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>    Used Content Based Filtering</h3>", unsafe_allow_html=True)
     
     tfidf = TfidfVectorizer()
     tfidf_matrix = tfidf.fit_transform(places['Category'])
