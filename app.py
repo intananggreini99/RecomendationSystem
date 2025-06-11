@@ -11,7 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 
 # === SIDEBAR DASHBOARD ===
 st.sidebar.title("🧭 Menu")
-menu = st.sidebar.radio("Pilih Halaman:", ["Tempat Serupa", "Rekomendasi User"])
+menu = st.sidebar.radio("Pilih Halaman:", ["Content-Based Filtering", "Collaborative Filtering"])
 
 # === LOAD DATA ===
 @st.cache_data
@@ -35,9 +35,9 @@ username_to_userid = ratings.drop_duplicates(subset="username")[["username", "Us
 user_id_to_username = {v: k for k, v in username_to_userid.items()}
 
 # === HALAMAN: TEMPAT SERUPA ===
-if menu == "Tempat Serupa":
+if menu == "Content-Based Filtering":
     st.markdown("<h3 style='text-align: center;'>🔍 Rekomendasi Destinasi</h3>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center;'>    Used Content Based Filtering</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>    Used Content-Based Filtering</h3>", unsafe_allow_html=True)
     
     tfidf = TfidfVectorizer()
     tfidf_matrix = tfidf.fit_transform(places['Category'])
@@ -71,7 +71,7 @@ if menu == "Tempat Serupa":
             st.map(df_map[['latitude', 'longitude']])
 
 # === HALAMAN: REKOMENDASI USER ===
-elif menu == "Rekomendasi User":
+elif menu == "Collaborative Filtering":
 
     st.markdown("<h3 style='text-align: center;'>🔍 Rekomendasi Destinasi</h3>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center;'>    Used Collaborative Filtering</h3>", unsafe_allow_html=True)
