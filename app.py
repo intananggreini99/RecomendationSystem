@@ -77,7 +77,7 @@ elif menu == "Rekomendasi User":
     st.markdown("<h3 style='text-align: center;'>    Used Collaborative Filtering</h3>", unsafe_allow_html=True)
 
     if 'selected_user' not in st.session_state:
-        st.markdown("### 🔎 Cari Username")
+        st.markdown("### 👥 Cari Username")
         search_user = st.text_input("Masukkan nama pengguna:")
 
         if search_user:
