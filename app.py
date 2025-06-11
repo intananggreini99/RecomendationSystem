@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import tensorflow as tf
-from tensorflow.keras import layers
+from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import LabelEncoder
 
 # === SIDEBAR DASHBOARD ===
 st.sidebar.title("🧭 Menu")
@@ -74,7 +74,6 @@ elif menu == "Rekomendasi User":
 
     st.title("Rekomendasi Destinasi - Collaborative Filtering")
 
-    # Jika belum ada user terpilih, tampilkan pencarian
     if 'selected_user' not in st.session_state:
         st.markdown("### 🔎 Cari Username")
         search_user = st.text_input("Masukkan nama pengguna:")
@@ -92,57 +91,38 @@ elif menu == "Rekomendasi User":
             else:
                 st.warning("Tidak ada username yang cocok ditemukan.")
 
-    # Jika user sudah dipilih, tampilkan rekomendasi saja
     if 'selected_user' in st.session_state:
         selected_username = st.session_state['selected_user']
-        st.header(f"Rekomendasi 👤 {selected_username}")
+        st.header(f"Rekomendasi untuk 👤 {selected_username}")
 
-        user_id = username_to_userid.get(selected_username)
-        user_ids = ratings['User_Id'].unique().tolist()
-        place_ids = places['Place_Id'].unique().tolist()
+        # Encode user dan tempat
+        user_enc = LabelEncoder()
+        place_enc = LabelEncoder()
+        ratings['user_id'] = user_enc.fit_transform(ratings['User_Id'])
+        ratings['place_id'] = place_enc.fit_transform(ratings['Place_Id'])
 
-        user2idx = {x: i for i, x in enumerate(user_ids)}
-        place2idx = {x: i for i, x in enumerate(place_ids)}
-        idx2place = {i: x for i, x in enumerate(place_ids)}
+        # Buat matriks user-item
+        n_users = ratings['user_id'].nunique()
+        n_items = ratings['place_id'].nunique()
+        ratings_matrix = np.zeros((n_users, n_items))
+        for row in ratings.itertuples():
+            ratings_matrix[row.user_id, row.place_id] = row.Place_Ratings
 
-        ratings['user'] = ratings['User_Id'].map(user2idx)
-        ratings['place'] = ratings['Place_Id'].map(place2idx)
-        ratings['rating'] = ratings['Place_Ratings'].astype(np.float32)
+        # SVD
+        svd = TruncatedSVD(n_components=10, random_state=42)
+        user_factors = svd.fit_transform(ratings_matrix)
+        item_factors = svd.components_.T
+        pred_matrix = np.dot(user_factors, item_factors.T)
 
-        min_r, max_r = ratings['rating'].min(), ratings['rating'].max()
-        x = ratings[['user', 'place']].values
-        y = ratings['rating'].apply(lambda r: (r - min_r) / (max_r - min_r)).values
+        # Ambil rekomendasi
+        user_idx = user_enc.transform([username_to_userid[selected_username]])[0]
+        user_rated = ratings[ratings['user_id'] == user_idx]['place_id'].tolist()
 
-        split = int(0.8 * len(ratings))
-        x_train, x_val = x[:split], x[split:]
-        y_train, y_val = y[:split], y[split:]
+        preds = pred_matrix[user_idx]
+        unrated_idx = [i for i in range(n_items) if i not in user_rated]
+        top_idx = sorted(unrated_idx, key=lambda x: preds[x], reverse=True)[:5]
 
-        class RecommenderNet(tf.keras.Model):
-            def __init__(self, n_users, n_places, embed_size=50):
-                super().__init__()
-                self.user_embed = layers.Embedding(n_users, embed_size)
-                self.user_bias = layers.Embedding(n_users, 1)
-                self.place_embed = layers.Embedding(n_places, embed_size)
-                self.place_bias = layers.Embedding(n_places, 1)
-
-            def call(self, inputs):
-                u = self.user_embed(inputs[:, 0])
-                p = self.place_embed(inputs[:, 1])
-                dot = tf.reduce_sum(u * p, axis=1, keepdims=True)
-                return tf.nn.sigmoid(dot + self.user_bias(inputs[:, 0]) + self.place_bias(inputs[:, 1]))
-
-        model = RecommenderNet(len(user_ids), len(place_ids))
-        model.compile(optimizer='adam', loss='binary_crossentropy')
-        model.fit(x_train, y_train, batch_size=8, epochs=1, verbose=0)
-
-        u_index = user2idx[user_id]
-        rated_places = ratings[ratings['User_Id'] == user_id]['Place_Id'].tolist()
-        not_rated = [pid for pid in place_ids if pid not in rated_places and pid in place2idx]
-        test_input = np.array([[u_index, place2idx[pid]] for pid in not_rated])
-        preds = model.predict(test_input).flatten()
-
-        top_idx = preds.argsort()[-5:][::-1]
-        top_place_ids = [idx2place[place2idx[not_rated[i]]] for i in top_idx]
+        top_place_ids = place_enc.inverse_transform(top_idx)
         top_places = places[places['Place_Id'].isin(top_place_ids)]
 
         df_display = top_places[['Place_Name', 'City', 'Category']].rename(columns={
@@ -159,7 +139,6 @@ elif menu == "Rekomendasi User":
             st.markdown("### 📍 Peta Lokasi Destinasi")
             st.map(df_map[['latitude', 'longitude']])
 
-        # Tombol reset (opsional)
         if st.button("🔄 Ganti Pengguna"):
             del st.session_state['selected_user']
             st.rerun()
