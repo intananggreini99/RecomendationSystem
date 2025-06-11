@@ -73,7 +73,8 @@ if menu == "Tempat Serupa":
 # === HALAMAN: REKOMENDASI USER ===
 elif menu == "Rekomendasi User":
 
-    st.title("Rekomendasi Destinasi - Collaborative Filtering")
+    st.markdown("<h3 style='text-align: center;'>🔍 Rekomendasi Destinasi</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>    Used Collaborative Filtering</h3>", unsafe_allow_html=True)
 
     if 'selected_user' not in st.session_state:
         st.markdown("### 🔎 Cari Username")
